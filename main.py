@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import json
-import logging
-
 import requests
+import pprint
 from config import *
 from messages import *
 from typing import Dict
@@ -12,6 +10,7 @@ from typing import Dict
 def api_call(
     endpoint: str,
     payload: Dict = None,
+    content_type: str = 'application/json',
     method: str = 'GET',
 ):
     """
@@ -19,11 +18,13 @@ def api_call(
     Returns a json object of the results if successful.
     Returns [] otherwise
 
+    :param content_type: Specifies the content type to send with header.
     :param endpoint: The API endpoint to call.
     :param payload: Any optional parameters.
     :param method: Type of call to make. Ex. "Get", "POST", etc.
     :return: list data: JSON data resulting from the call.
     """
+    # TODO: Add rate limiting https://api.slack.com/docs/rate-limits#tier_t2
     base_url = 'https://slack.com/api'
 
     if endpoint[0] == '/':
@@ -35,7 +36,7 @@ def api_call(
     logging.debug(f'Making API call to: {url}...')
 
     headers = {
-        'Content-type': 'application/json',
+        'Content-type': content_type,
         'Authorization': 'Bearer ' + api_token
     }
 
@@ -70,7 +71,7 @@ def test_call() -> bool:
     """
     Tries making a test api call to see if it is successful.
     If so, returns True. Returns False otherwise.
-    :return:
+    :return: bool
     """
     endpoint = '/auth.test'
 
@@ -84,8 +85,26 @@ def join_channel(channel: str) -> None:
     return None
 
 
-def get_channels() -> None:
-    pass
+def get_channels(include_private: bool = False) -> Dict:
+    """
+    Gets a list of all channels in the org.
+    Only checks for public channels unless specified otherwise.
+    :return: All channels
+    """
+    endpoint = 'conversations.list'
+    content = 'application/x-www-form-urlencoded'
+    if include_private:
+        types = 'public_channel,private_channel'
+    else:
+        types = 'public_channel'
+
+    payload = {
+        'types': types
+    }
+
+    results = api_call(endpoint, content_type=content, payload=payload)
+
+    return results
 
 
 def is_channel_exempt(channel_id: str) -> bool:
@@ -142,6 +161,10 @@ if __name__ == '__main__':
         raise Exception(
             'Issue making a test API call. Check log for details.'
         )
+
+    channels = get_channels()
+    print(type(channels))
+    pprint.pprint(channels)
 
     logging.info('Script completed successfully.')
     logging.info(log_end)
