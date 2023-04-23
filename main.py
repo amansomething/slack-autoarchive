@@ -1,16 +1,147 @@
-# This is a sample Python script.
+# -*- coding: utf-8 -*-
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+import json
+import logging
+
+import requests
+from config import *
+from messages import *
+from typing import Dict
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+def api_call(
+    endpoint: str,
+    payload: Dict = None,
+    method: str = 'GET',
+):
+    """
+    Makes a Slack API call to the given endpoint.
+    Returns a json object of the results if successful.
+    Returns [] otherwise
+
+    :param endpoint: The API endpoint to call.
+    :param payload: Any optional parameters.
+    :param method: Type of call to make. Ex. "Get", "POST", etc.
+    :return: list data: JSON data resulting from the call.
+    """
+    base_url = 'https://slack.com/api'
+
+    if endpoint[0] == '/':
+        url = base_url + endpoint
+    else:
+        url = base_url + '/' + endpoint
+
+    print(f'Making API call to: {url}...')
+    logging.debug(f'Making API call to: {url}...')
+
+    headers = {
+        'Content-type': 'application/json',
+        'Authorization': 'Bearer ' + api_token
+    }
+
+    # Make the API call and handle the response
+    response = requests.request(
+        method, url, headers=headers, params=payload
+    )
+    try:
+        if response.status_code == 200:
+            data = response.json()
+
+            if data['ok']:
+                print('Call successful.\n')
+                logging.debug(data)
+                return response.json()
+            else:
+                logging.warning(data)
+                return []
+        else:
+            print(response.text)
+            logging.critical(f'Error: {response.status_code} - {response.reason}')
+            logging.critical(response)
+            logging.critical(log_end)
+            sys.exit(1)
+    except requests.exceptions.RequestException as e:
+        logging.critical(f'Error: {e}')
+        logging.info(log_end)
+        raise SystemExit(e)
+
+
+def test_call() -> bool:
+    """
+    Tries making a test api call to see if it is successful.
+    If so, returns True. Returns False otherwise.
+    :return:
+    """
+    endpoint = '/auth.test'
+
+    if api_call(endpoint):
+        return True
+
+    return False
+
+
+def join_channel(channel: str) -> None:
+    return None
+
+
+def get_channels() -> None:
+    pass
+
+
+def is_channel_exempt(channel_id: str) -> bool:
+    allowed_channels = ''
+
+    return True
+
+
+def is_channel_active(channel_id: str) -> bool:
+    return True
+
+
+def get_channel_members(channel_id: str) -> list:
+    pass
+
+
+def send_message(msg, channel_name=DEFAULT_NOTIFICATION_CHANNEL) -> None:
+    """
+    Helper function used to send the given message to the given channel.
+
+    :param msg: The message to send.
+    :param channel_name: The channel to send to.
+    :return:
+    """
+    pass
+
+
+def archive_channel(channel_id: str) -> bool:
+    """
+    Archives the specified channel and returns True if successful.
+    Returns False otherwise.
+
+    :param channel_id: The ID of the channel to be archived
+    :return: bool
+    """
+    return True
+
+
+def send_admin_report(channel_name: str = DEFAULT_NOTIFICATION_CHANNEL) -> None:
+    """
+    Sends an admin report to the specified channel.
+    In a dry run, it sends a list of the channels that would be archived.
+    In a non-dry run, it sends a list of the channels that were archived.
+
+    :return: None
+    """
+    pass
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
+    if not test_call():
+        logging.info(log_end)
+        raise Exception(
+            'Issue making a test API call. Check log for details.'
+        )
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    logging.info('Script completed successfully.')
+    logging.info(log_end)
