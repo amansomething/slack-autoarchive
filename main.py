@@ -13,7 +13,7 @@ def api_call(
     json_data: Dict = None,
     content_type: str = 'application/json',
     method: str = 'GET',
-):
+) -> list:
     """
     Makes a Slack API call to the given endpoint.
     Returns a json object of the results if successful.
@@ -96,7 +96,19 @@ def test_call() -> bool:
     return False
 
 
-def join_channel(channel: str) -> None:
+def join_channels(channels: list) -> None:
+    """
+    Joins the specified channels. Channels must be public.
+
+    :param channels: List of channel IDs
+    :return: None
+    """
+
+    endpoint = 'conversations.join'
+
+    for channel in channels:
+        pass
+
     return None
 
 
@@ -135,7 +147,29 @@ def is_channel_active(channel_id: str) -> bool:
 
 
 def get_channel_members(channel_id: str) -> list:
-    pass
+    """
+    Returns a list of the member names of the given channel ID.
+
+    :param channel_id: Channel ID to get members from.
+    :return: results: List of member names.
+    """
+    members_endpoint = 'conversations.members'  # Returns member IDs
+    users_endpoint = 'users.info'  # Returns all user info including name
+    results = []
+
+    members_payload = {'channel': channel_id}
+    members = api_call(members_endpoint, payload=members_payload)['members']
+
+    for member in members:
+        users_payload = {'user': member}
+        user_info = api_call(users_endpoint, payload=users_payload)
+
+        profile = user_info['user']['profile']
+        name = profile['real_name']
+
+        results.append(name)
+
+    return results
 
 
 def send_message(
@@ -190,8 +224,6 @@ if __name__ == '__main__':
         raise Exception(
             'Issue making a test API call. Check log for details.'
         )
-
-    send_message('test')
 
     logging.info('Script completed successfully.')
     logging.info(log_end)
