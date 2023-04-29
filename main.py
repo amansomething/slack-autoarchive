@@ -72,8 +72,9 @@ def api_call(
                     return response
                 return response.json()
             else:
-                logging.warning(response.content)
-                return []
+                logging.critical(f'Error: {response.content}')
+                logging.critical(log_end)
+                sys.exit(1)
         else:
             print(response.text)
             logging.critical(f'Error: {response.status_code} - {response.reason}')
@@ -116,26 +117,45 @@ def join_channels(channels: list) -> None:
     return None
 
 
-def get_channels(include_private: bool = False) -> Dict:
+def get_channels(
+        include_private: bool = False,
+        exclude_archived: bool = True
+) -> list:
     """
     Gets a list of all channels in the org.
-    Only checks for public channels unless specified otherwise.
-    :return: All channels
+    Only checks for public, unarchived channels unless specified otherwise.
+
+    :param: include_private: Set to True if private channels should be included
+    :param: exclude_archived: Set to False if archived channel should be included
+    :return: results: A list of channel objects
     """
     endpoint = 'conversations.list'
     content = 'application/x-www-form-urlencoded'
+    results = []
+
     if include_private:
         types = 'public_channel,private_channel'
     else:
         types = 'public_channel'
 
-    payload = {
-        'types': types
-    }
+    cursor = None
+    while True:
+        payload = {
+            'cursor': cursor,
+            'exclude_archived': exclude_archived,
+            'types': types,
+            'limit': 200  # Actual max = 1,000 but Slack docs recommend 200 max
+        }
 
-    results = api_call(
-        endpoint, content_type=content, payload=payload
-    )['channels']
+        response = api_call(
+            endpoint, content_type=content, payload=payload
+        )
+
+        results.extend(response['channels'])
+
+        if not response["response_metadata"].get("next_cursor"):
+            break
+        cursor = response["response_metadata"]["next_cursor"]
 
     return results
 
@@ -179,8 +199,8 @@ def get_channel_members(channel_id: str) -> list:
 
         if not response['response_metadata'].get('next_cursor'):
             break
-        else:
-            cursor = response['response_metadata']['next_cursor']
+
+        cursor = response['response_metadata']['next_cursor']
 
     for member in members:
         users_payload = {'user': member}
@@ -247,7 +267,8 @@ if __name__ == '__main__':
             'Issue making a test API call. Check log for details.'
         )
 
-    get_channel_members('C03NYT9Q25A')
+    # get_channel_members('C03NYT9Q25A')
+    get_channels()
 
     logging.info('Script completed successfully.')
     logging.info(log_end)
