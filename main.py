@@ -39,7 +39,7 @@ def api_call(
     logging.debug(f'Making API call to: {url}...')
 
     headers = {
-        'Content-type': content_type,
+        'Content-type': f'{content_type}; charset=utf-8',
         'Authorization': 'Bearer ' + api_token
     }
 
@@ -66,17 +66,18 @@ def api_call(
             data = response.json()
 
             if data['ok']:
-                print('Call successful.\n')
+                print('Call successful.')
                 logging.debug(data)
                 if full_response:
                     return response
                 return response.json()
             else:
+                print(api_error)
                 logging.critical(f'Error: {response.content}')
                 logging.critical(log_end)
                 sys.exit(1)
         else:
-            print(response.text)
+            print(api_error)
             logging.critical(f'Error: {response.status_code} - {response.reason}')
             logging.critical(response)
             logging.critical(log_end)
@@ -84,6 +85,7 @@ def api_call(
     except requests.exceptions.RequestException as e:
         logging.critical(f'Error: {e}')
         logging.info(log_end)
+        print(api_error)
         raise SystemExit(e)
 
 
@@ -105,14 +107,36 @@ def join_channels(channels: list) -> None:
     """
     Joins the specified channels. Channels must be public.
 
-    :param channels: List of channel IDs
+    :param channels: List of channel objects
     :return: None
     """
 
     endpoint = 'conversations.join'
 
     for channel in channels:
-        pass
+        is_channel = channel['is_channel']  # As opposed to a DM, group, etc.
+        if is_channel:
+            channel_id = channel['id']
+            channel_name = channel['name']
+            print(f'Attempting to join: {channel_name}...')
+            logging.info(f'Attempting to join: {channel_name}...')
+
+            response = api_call(
+                method='POST',
+                endpoint=endpoint,
+                json_data={"channel": channel_id}
+            )
+            if response['warning']:
+                warnings = response['warning'].split(',')
+                if 'already_in_channel' in warnings:
+                    print(f'Already a member of: {channel_name}\n')
+                    logging.warning(f'Already a member of: {channel_name}\n')
+                else:
+                    print(f'Warning(s): {warnings}')
+                    logging.warning(f'Warning(s): {warnings}')
+            else:
+                print(f'Successfully joined: {channel_name}')
+                logging.info(f'Successfully joined: {channel_name}')
 
     return None
 
@@ -268,7 +292,8 @@ if __name__ == '__main__':
         )
 
     # get_channel_members('C03NYT9Q25A')
-    get_channels()
+    # all_channels = get_channels()
+    # join_channels(all_channels)
 
     logging.info('Script completed successfully.')
     logging.info(log_end)
