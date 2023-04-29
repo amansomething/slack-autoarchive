@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-
+import logging
+import time
 import requests
-import pprint
 from config import *
 from messages import *
 from typing import Dict
@@ -10,6 +10,7 @@ from typing import Dict
 def api_call(
     endpoint: str,
     payload: Dict = None,
+    json_data: Dict = None,
     content_type: str = 'application/json',
     method: str = 'GET',
 ):
@@ -21,10 +22,10 @@ def api_call(
     :param content_type: Specifies the content type to send with header.
     :param endpoint: The API endpoint to call.
     :param payload: Any optional parameters.
+    :param json_data: Any option json data to send.
     :param method: Type of call to make. Ex. "Get", "POST", etc.
     :return: list data: JSON data resulting from the call.
     """
-    # TODO: Add rate limiting https://api.slack.com/docs/rate-limits#tier_t2
     base_url = 'https://slack.com/api'
 
     if endpoint[0] == '/':
@@ -41,11 +42,25 @@ def api_call(
     }
 
     # Make the API call and handle the response
-    response = requests.request(
-        method, url, headers=headers, params=payload
-    )
+    if json_data:
+        response = requests.request(
+            method, url, headers=headers, json=json_data
+        )
+    else:
+        response = requests.request(
+            method, url, headers=headers, params=payload
+        )
     try:
-        if response.status_code == 200:
+        if response.status_code == 429:  # Rate limit reached
+            retry_after = int(response.headers.get('retry-after', '1'))
+
+            print('Rate limit reached.')
+            print(f'Retrying after {retry_after} seconds...')
+            logging.warning(f'Rate limit reached. Retry time: {retry_after}\n')
+
+            time.sleep(retry_after)
+            print('Back to work...')
+        elif response.status_code == 200:
             data = response.json()
 
             if data['ok']:
@@ -102,7 +117,9 @@ def get_channels(include_private: bool = False) -> Dict:
         'types': types
     }
 
-    results = api_call(endpoint, content_type=content, payload=payload)
+    results = api_call(
+        endpoint, content_type=content, payload=payload
+    )['channels']
 
     return results
 
@@ -121,15 +138,27 @@ def get_channel_members(channel_id: str) -> list:
     pass
 
 
-def send_message(msg, channel_name=DEFAULT_NOTIFICATION_CHANNEL) -> None:
+def send_message(
+        msg: str,
+        channel: str = DEFAULT_NOTIFICATION_CHANNEL,
+) -> None:
     """
     Helper function used to send the given message to the given channel.
 
     :param msg: The message to send.
-    :param channel_name: The channel to send to.
-    :return:
+    :param channel: The channel to send to. Can be a channel name or ID.
+    :return: None
     """
-    pass
+    # Would be better to use blocks instead of just text
+    endpoint = 'chat.postMessage'
+    payload = {
+        "channel": channel,
+        "text": msg
+    }
+
+    api_call(endpoint, json_data=payload, method='POST')
+
+    return None
 
 
 def archive_channel(channel_id: str) -> bool:
@@ -162,9 +191,7 @@ if __name__ == '__main__':
             'Issue making a test API call. Check log for details.'
         )
 
-    channels = get_channels()
-    print(type(channels))
-    pprint.pprint(channels)
+    send_message('test')
 
     logging.info('Script completed successfully.')
     logging.info(log_end)

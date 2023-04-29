@@ -7,7 +7,7 @@ from messages import *
 
 DRY_RUN = environ.get('DRY_RUN', True)
 DAYS_INACTIVE = int(environ.get('DAYS_INACTIVE', 60))
-DEFAULT_NOTIFICATION_CHANNEL = ''
+DEFAULT_NOTIFICATION_CHANNEL = '#apis'
 JOIN_CHANNELS = False
 
 logging.basicConfig(
