@@ -13,7 +13,8 @@ def api_call(
     json_data: Dict = None,
     content_type: str = 'application/json',
     method: str = 'GET',
-) -> list:
+    full_response: bool = False
+):
     """
     Makes a Slack API call to the given endpoint.
     Returns a json object of the results if successful.
@@ -24,6 +25,7 @@ def api_call(
     :param payload: Any optional parameters.
     :param json_data: Any option json data to send.
     :param method: Type of call to make. Ex. "Get", "POST", etc.
+    :param full_response: If true returns full response. If false, returns response.json()
     :return: list data: JSON data resulting from the call.
     """
     base_url = 'https://slack.com/api'
@@ -66,9 +68,11 @@ def api_call(
             if data['ok']:
                 print('Call successful.\n')
                 logging.debug(data)
+                if full_response:
+                    return response
                 return response.json()
             else:
-                logging.warning(data)
+                logging.warning(response.content)
                 return []
         else:
             print(response.text)
@@ -155,10 +159,28 @@ def get_channel_members(channel_id: str) -> list:
     """
     members_endpoint = 'conversations.members'  # Returns member IDs
     users_endpoint = 'users.info'  # Returns all user info including name
-    results = []
 
-    members_payload = {'channel': channel_id}
-    members = api_call(members_endpoint, payload=members_payload)['members']
+    members = []  # All member IDs
+    results = []  # Just the member names parsed from "members"
+
+    cursor = None
+    while True:
+        members_payload = {
+            'channel': channel_id,
+            'cursor': cursor,
+            'limit': 200  # Actual max = 1,000 but Slack docs recommend 200 max
+        }
+        response = api_call(
+            members_endpoint,
+            payload=members_payload,
+            content_type='application/x-www-form-urlencoded',
+        )
+        members.extend(response['members'])
+
+        if not response['response_metadata'].get('next_cursor'):
+            break
+        else:
+            cursor = response['response_metadata']['next_cursor']
 
     for member in members:
         users_payload = {'user': member}
@@ -224,6 +246,8 @@ if __name__ == '__main__':
         raise Exception(
             'Issue making a test API call. Check log for details.'
         )
+
+    get_channel_members('C03NYT9Q25A')
 
     logging.info('Script completed successfully.')
     logging.info(log_end)
