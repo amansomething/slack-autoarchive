@@ -16,4 +16,23 @@ api_error = 'Error making an API call. See error for details.'
 stars = "*" * 80  # Used for logging and printing to separate sections
 dashes = "-" * 80  # Used for logging and printing to separate sections
 
+users_logging_template = '''
+
+Members of: {channel_name}:
+-----------------------------
+{users}
+-----------------------------
+'''
+
+results_template = '''
+*****************************
+Channel: {channel_name}:
+*****************************
+Archived?: {archived}
+-----------------------------
+{users}
+-----------------------------
+
+'''
+
 log_end = f'End of run.\n{stars}\n'

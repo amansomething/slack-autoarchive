@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import csv
 import time
 import requests
 from config import *
@@ -142,8 +143,8 @@ def join_channels(channels: list) -> None:
                 print(f'Successfully joined: {channel_name}')
                 logging.info(f'Successfully joined: {channel_name}')
         else:
-            print(f'Not a channel. Skipping: {channel_name}')
-            logging.info(f'Not a channel. Skipping: {channel_name}')
+            print(f'Skipping joining: {channel_name}')
+            logging.info(f'Skipping joining: {channel_name}')
 
     return None
 
@@ -203,12 +204,14 @@ def is_channel_exempt(channel: Dict) -> bool:
 
     channel_name = channel['name'].strip()
     if channel_name in exempt_channels:
+        logging.info(f'{channel_name} is exempt via allow list.')
         return True
 
     channel_topic = channel['topic']['value']
     exempt_keywords = [x.strip() for x in ALLOWLIST_KEYWORDS_RAW.splitlines() if x]
     exempt_topic = any(word in channel_topic for word in exempt_keywords)
     if channel_topic and exempt_topic:
+        logging.info(f'{channel_name} is exempt via channel topic.')
         return True
 
     return False
@@ -295,7 +298,6 @@ def archive_channels(channels: list) -> bool:
     :param channels: Channel objects
     :return: bool
     """
-    # TODO: Make this work
     results = []
     for channel in channels:
         channel_id = channel['id']
@@ -314,8 +316,10 @@ def archive_channels(channels: list) -> bool:
             users = get_channel_members(channel_id)
             if users:
                 logging.info(
-                    '\nUsers' + dashes + channel_name + dashes +
-                    '\n'.join(users) + dashes
+                    users_logging_template.format(
+                        channel_name=channel_name,
+                        users='\t\n'.join(users)
+                    )
                 )
                 result['users'] = users
             else:
@@ -330,25 +334,54 @@ def archive_channels(channels: list) -> bool:
                     endpoint=endpoint,
                     json_data={"channel": channel_id}
                 )
+
+                if response['error']:
+                    print(f'ERROR archiving: {channel_name}')
+                    print(response['error'])
+                    logging.warning(channel_name + response['error'])
+                    result['archived'] = False
+                else:
+                    result['archived'] = True
             else:
-                print(f'Would have archived: {channel_name}')
+                print(f'DRY RUN: Would have archived: {channel_name}')
+                result['archived'] = True
 
             results.append(result)
         else:
-            print(f'Not a channel. Skipping: {channel_name}')
-            logging.info(f'Not a channel. Skipping: {channel_name}')
+            print(f'Skipping: {channel_name}')
 
-    # try:
-    #     with open(RESULTS_FILE, 'a') as f:
-    #         f.write(stars + '\n')
-    #         f.write(channel_name + '\n')
-    #         f.write(stars + '\n')
-    #
-    #         f.write(dashes + '\n')
-    # except OSError:
-    #     print(f'Error opening: {RESULTS_FILE}')
-    #     print('Continuing script. Data will be in the log file.')
-    #     logging.critical('')  # TODO: add data
+    try:
+        with open(
+                RESULTS_FILE, mode='w', encoding='utf-8', newline=''
+        ) as csvfile:
+            # TODO: Add unarchive link
+            writer = csv.writer(csvfile, quoting=csv.QUOTE_ALL)
+            headers = ['Channel', 'Users', 'Successfully Archived?']
+            writer.writerow(headers)
+
+            for result in results:
+                channel_users = '\n'.join(result['users'])
+                if result['archived']:
+                    archived = 'Yes'
+                else:
+                    archived = 'No'
+
+                row = [
+                    result['name'],
+                    channel_users,
+                    archived
+                ]
+
+                writer.writerow(row)
+    except OSError:
+        print(f'Error opening: {RESULTS_FILE}')
+        print('Continuing script. Data will be in the log file.')
+
+        for result in results:
+            logging.critical(f"Channel: {result['name']}")
+            channel_users = '\n'.join(result['users'])
+            logging.critical(channel_users)
+            logging.critical(dashes)
 
     return True
 
@@ -366,6 +399,15 @@ def send_admin_report(channel_name: str = DEFAULT_NOTIFICATION_CHANNEL) -> None:
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
+    if DRY_RUN:
+        print('This is only a dry run. No channels will be archived.')
+    else:
+        print('This IS NOT a dry run. Channels will be archived.')
+        if input('Continue ("y/n")?: ').lower() != 'y':
+            print('Quitting program.')
+            logging.info(log_end)
+            sys.exit(1)
+
     if not test_call():
         logging.info(log_end)
         raise Exception(
@@ -375,7 +417,7 @@ if __name__ == '__main__':
     # get_channel_members('C03NYT9Q25A')
     all_channels = get_channels()
     join_channels(all_channels)
-    # archive_channels(all_channels)
+    archive_channels(all_channels)
 
     logging.info('Script completed successfully.')
     logging.info(log_end)

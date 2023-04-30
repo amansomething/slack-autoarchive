@@ -11,7 +11,7 @@ DRY_RUN = environ.get('DRY_RUN', True)
 DAYS_INACTIVE = int(environ.get('DAYS_INACTIVE', 60))
 DEFAULT_NOTIFICATION_CHANNEL = '#apis'
 JOIN_CHANNELS = False
-RESULTS_FILE = 'results.txt'
+RESULTS_FILE = 'results.csv'
 
 ALLOWLIST_KEYWORDS_RAW = '''
 %noarchive
@@ -22,7 +22,7 @@ general
 '''
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     filename='logs.log',
     datefmt='%Y-%m-%d %H:%M:%S',
     format='%(asctime)s - %(levelname)s - %(message)s',
