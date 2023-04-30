@@ -5,10 +5,21 @@ import logging
 from os import environ
 from messages import *
 
+# TODO: User env vars or other files for setting the variables
+
 DRY_RUN = environ.get('DRY_RUN', True)
 DAYS_INACTIVE = int(environ.get('DAYS_INACTIVE', 60))
 DEFAULT_NOTIFICATION_CHANNEL = '#apis'
 JOIN_CHANNELS = False
+RESULTS_FILE = 'results.txt'
+
+ALLOWLIST_KEYWORDS_RAW = '''
+%noarchive
+'''
+
+EXEMPT_CHANNELS_RAW = '''
+general    
+'''
 
 logging.basicConfig(
     level=logging.DEBUG,

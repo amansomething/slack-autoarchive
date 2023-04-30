@@ -14,5 +14,6 @@ archived_message = '''This channel has been archived. To un-archive:'''
 api_error = 'Error making an API call. See error for details.'
 
 stars = "*" * 80  # Used for logging and printing to separate sections
+dashes = "-" * 80  # Used for logging and printing to separate sections
 
 log_end = f'End of run.\n{stars}\n'

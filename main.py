@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import logging
+
 import time
 import requests
 from config import *
@@ -12,6 +12,7 @@ def api_call(
     payload: Dict = None,
     json_data: Dict = None,
     content_type: str = 'application/json',
+    charset: str = 'charset=utf-8',
     method: str = 'GET',
     full_response: bool = False
 ):
@@ -24,6 +25,7 @@ def api_call(
     :param endpoint: The API endpoint to call.
     :param payload: Any optional parameters.
     :param json_data: Any option json data to send.
+    :param charset: Specifies the charset to use. utf-8 by default
     :param method: Type of call to make. Ex. "Get", "POST", etc.
     :param full_response: If true returns full response. If false, returns response.json()
     :return: list data: JSON data resulting from the call.
@@ -39,11 +41,10 @@ def api_call(
     logging.debug(f'Making API call to: {url}...')
 
     headers = {
-        'Content-type': f'{content_type}; charset=utf-8',
+        'Content-type': f'{content_type}; {charset}',
         'Authorization': 'Bearer ' + api_token
     }
 
-    # Make the API call and handle the response
     if json_data:
         response = requests.request(
             method, url, headers=headers, json=json_data
@@ -110,14 +111,17 @@ def join_channels(channels: list) -> None:
     :param channels: List of channel objects
     :return: None
     """
+    if not JOIN_CHANNELS:  # Set in config.py
+        return None
 
     endpoint = 'conversations.join'
 
     for channel in channels:
         is_channel = channel['is_channel']  # As opposed to a DM, group, etc.
+        channel_name = channel['name']
+
         if is_channel:
             channel_id = channel['id']
-            channel_name = channel['name']
             print(f'Attempting to join: {channel_name}...')
             logging.info(f'Attempting to join: {channel_name}...')
 
@@ -130,13 +134,16 @@ def join_channels(channels: list) -> None:
                 warnings = response['warning'].split(',')
                 if 'already_in_channel' in warnings:
                     print(f'Already a member of: {channel_name}\n')
-                    logging.warning(f'Already a member of: {channel_name}\n')
+                    logging.info(f'Already a member of: {channel_name}\n')
                 else:
                     print(f'Warning(s): {warnings}')
                     logging.warning(f'Warning(s): {warnings}')
             else:
                 print(f'Successfully joined: {channel_name}')
                 logging.info(f'Successfully joined: {channel_name}')
+        else:
+            print(f'Not a channel. Skipping: {channel_name}')
+            logging.info(f'Not a channel. Skipping: {channel_name}')
 
     return None
 
@@ -153,6 +160,7 @@ def get_channels(
     :param: exclude_archived: Set to False if archived channel should be included
     :return: results: A list of channel objects
     """
+    # TODO: Have a local list of channels. If that last was recently generated, return that
     endpoint = 'conversations.list'
     content = 'application/x-www-form-urlencoded'
     results = []
@@ -184,13 +192,30 @@ def get_channels(
     return results
 
 
-def is_channel_exempt(channel_id: str) -> bool:
-    allowed_channels = ''
+def is_channel_exempt(channel: Dict) -> bool:
+    """
+    Checks to see if the given channel object is exempt from being archived.
 
-    return True
+    :param channel: Channel object
+    :return: bool: True if exempt, False if it should be archived
+    """
+    exempt_channels = [x.strip() for x in EXEMPT_CHANNELS_RAW.splitlines() if x]
+
+    channel_name = channel['name'].strip()
+    if channel_name in exempt_channels:
+        return True
+
+    channel_topic = channel['topic']['value']
+    exempt_keywords = [x.strip() for x in ALLOWLIST_KEYWORDS_RAW.splitlines() if x]
+    exempt_topic = any(word in channel_topic for word in exempt_keywords)
+    if channel_topic and exempt_topic:
+        return True
+
+    return False
 
 
 def is_channel_active(channel_id: str) -> bool:
+    # TODO: Make this work
     return True
 
 
@@ -201,6 +226,7 @@ def get_channel_members(channel_id: str) -> list:
     :param channel_id: Channel ID to get members from.
     :return: results: List of member names.
     """
+    # TODO: Have a local list of members. If that last was recently generated, return that
     members_endpoint = 'conversations.members'  # Returns member IDs
     users_endpoint = 'users.info'  # Returns all user info including name
 
@@ -249,7 +275,7 @@ def send_message(
     :param channel: The channel to send to. Can be a channel name or ID.
     :return: None
     """
-    # Would be better to use blocks instead of just text
+    # TODO: Would be better to use blocks instead of just text
     endpoint = 'chat.postMessage'
     payload = {
         "channel": channel,
@@ -261,14 +287,69 @@ def send_message(
     return None
 
 
-def archive_channel(channel_id: str) -> bool:
+def archive_channels(channels: list) -> bool:
     """
     Archives the specified channel and returns True if successful.
     Returns False otherwise.
 
-    :param channel_id: The ID of the channel to be archived
+    :param channels: Channel objects
     :return: bool
     """
+    # TODO: Make this work
+    results = []
+    for channel in channels:
+        channel_id = channel['id']
+        channel_name = channel['name']
+        is_channel = channel['is_channel']  # As opposed to a DM, group, etc.
+
+        if is_channel and not is_channel_exempt(channel):  # Add check to see if valid channel
+            print(f'\nGetting member list for: {channel_name}...')
+            logging.info(f'\nGetting member list for: {channel_name}...')
+
+            result = {
+                'id': channel_id,
+                'name': channel_name
+            }
+
+            users = get_channel_members(channel_id)
+            if users:
+                logging.info(
+                    '\nUsers' + dashes + channel_name + dashes +
+                    '\n'.join(users) + dashes
+                )
+                result['users'] = users
+            else:
+                print(f'No members in: {channel_name}')
+                logging.info(f'No members in: {channel_name}')
+                result['users'] = []
+
+            endpoint = 'conversations.archive'
+            if not DRY_RUN:
+                response = api_call(
+                    method='POST',
+                    endpoint=endpoint,
+                    json_data={"channel": channel_id}
+                )
+            else:
+                print(f'Would have archived: {channel_name}')
+
+            results.append(result)
+        else:
+            print(f'Not a channel. Skipping: {channel_name}')
+            logging.info(f'Not a channel. Skipping: {channel_name}')
+
+    # try:
+    #     with open(RESULTS_FILE, 'a') as f:
+    #         f.write(stars + '\n')
+    #         f.write(channel_name + '\n')
+    #         f.write(stars + '\n')
+    #
+    #         f.write(dashes + '\n')
+    # except OSError:
+    #     print(f'Error opening: {RESULTS_FILE}')
+    #     print('Continuing script. Data will be in the log file.')
+    #     logging.critical('')  # TODO: add data
+
     return True
 
 
@@ -292,8 +373,9 @@ if __name__ == '__main__':
         )
 
     # get_channel_members('C03NYT9Q25A')
-    # all_channels = get_channels()
-    # join_channels(all_channels)
+    all_channels = get_channels()
+    join_channels(all_channels)
+    # archive_channels(all_channels)
 
     logging.info('Script completed successfully.')
     logging.info(log_end)
