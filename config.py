@@ -8,10 +8,18 @@ from messages import *
 # TODO: User env vars or other files for setting the variables
 
 DRY_RUN = environ.get('DRY_RUN', True)
-DAYS_INACTIVE = int(environ.get('DAYS_INACTIVE', 60))
+DAYS_INACTIVE = int(environ.get('DAYS_INACTIVE', 3))  # Not inclusive
 DEFAULT_NOTIFICATION_CHANNEL = '#apis'
-JOIN_CHANNELS = False
+JOIN_CHANNELS = True
 RESULTS_FILE = 'results.csv'
+NOT_SURE_ABOUT = []  # Stores channel info when unsure if should be archived
+
+# https://api.slack.com/events/message
+EXEMPT_SUBTYPES_RAW = '''  
+channel_join
+channel_leave
+'''
+SKIP_SUBTYPES = [x for x in EXEMPT_SUBTYPES_RAW.splitlines() if x]
 
 ALLOWLIST_KEYWORDS_RAW = '''
 %noarchive
@@ -42,6 +50,7 @@ def get_env_var(var_str: str) -> str:
         result = environ.get(var_str)
         if not result:
             logging.critical(f'"{var_str}" has not been set. Halting...')
+            return ''
         else:
             logging.info(f'"{var_str}" has been set. Continuing...')
             return result
@@ -52,28 +61,25 @@ def get_env_var(var_str: str) -> str:
     return ''
 
 
-def get_vars() -> tuple:
+def get_vars() -> str:
     """
     Checks the following:
         - Is API_TOKEN set?
-        - Is SLACK_URL set?
-    :return: token, url
+
+    :return: token
     """
     token_str = 'API_TOKEN'
-    url_str = 'SLACK_URL'
 
     token = get_env_var(token_str)
-    url = get_env_var(url_str)
 
-    checks = [token, url]
-
-    if not any([checks]):
+    if not token:
         print('Sanity check did not pass. Check log for details.')
         logging.info(log_end)
         sys.exit(1)
 
     logging.info('All sanity checks passed! Continuing...\n')
-    return token, url
+    return token
 
 
-api_token, slack_url = get_vars()
+logging.info(f'Starting new log\n{stars}')
+api_token = get_vars()

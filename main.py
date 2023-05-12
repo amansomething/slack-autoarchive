@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
+from config import *
+from messages import *
 import csv
 import time
 import requests
-from config import *
-from messages import *
 from typing import Dict
+from datetime import datetime, timedelta
+import pprint
 
 
 def api_call(
@@ -131,7 +133,7 @@ def join_channels(channels: list) -> None:
                 endpoint=endpoint,
                 json_data={"channel": channel_id}
             )
-            if response['warning']:
+            if response.get('warning'):
                 warnings = response['warning'].split(',')
                 if 'already_in_channel' in warnings:
                     print(f'Already a member of: {channel_name}\n')
@@ -218,7 +220,38 @@ def is_channel_exempt(channel: Dict) -> bool:
 
 
 def is_channel_active(channel_id: str) -> bool:
-    # TODO: Make this work
+    """
+    - Determines if any messages have been sent to the channel.
+    - If so, any in the last "DAYS_INACTIVE" set in config.py?
+    - If so, returns True. Returns False otherwise
+
+    :param channel_id: Slack channel ID
+    :return: bool
+    """
+    endpoint = 'conversations.history'
+    content = 'application/x-www-form-urlencoded'
+
+    payload = {
+        'channel': channel_id,
+        'count': 2
+    }
+
+    response = api_call(endpoint, content_type=content, payload=payload)
+    logging.debug(response)
+
+    if not response.get('messages'):  # No messages
+        return False
+
+    too_old_date = (datetime.now() - timedelta(days=DAYS_INACTIVE)).date()
+    for message in response['messages']:
+        if 'subtype' in message and message['subtype'] in SKIP_SUBTYPES:
+            # Not a user message we care about
+            continue
+
+        message_date = datetime.fromtimestamp(float(message['ts'])).date()
+        if message_date < too_old_date:
+            return False
+
     return True
 
 
@@ -290,13 +323,14 @@ def send_message(
     return None
 
 
-def archive_channels(channels: list) -> bool:
+def archive_channels(channels: list) -> None:
     """
-    Archives the specified channel and returns True if successful.
-    Returns False otherwise.
+    - Takes in a list of channel objects.
+    - Checks to see if they should be archived.
+    - Archives them if appropriate.
 
     :param channels: Channel objects
-    :return: bool
+    :return: None
     """
     results = []
     for channel in channels:
@@ -304,7 +338,9 @@ def archive_channels(channels: list) -> bool:
         channel_name = channel['name']
         is_channel = channel['is_channel']  # As opposed to a DM, group, etc.
 
-        if is_channel and not is_channel_exempt(channel):  # Add check to see if valid channel
+        if is_channel and not is_channel_exempt(channel):
+            if not is_channel_active(channel_id):
+                continue
             print(f'\nGetting member list for: {channel_name}...')
             logging.info(f'\nGetting member list for: {channel_name}...')
 
@@ -354,7 +390,7 @@ def archive_channels(channels: list) -> bool:
         with open(
                 RESULTS_FILE, mode='w', encoding='utf-8', newline=''
         ) as csvfile:
-            # TODO: Add unarchive link
+            # TODO: Add un-archive link
             writer = csv.writer(csvfile, quoting=csv.QUOTE_ALL)
             headers = ['Channel', 'Users', 'Successfully Archived?']
             writer.writerow(headers)
@@ -383,10 +419,12 @@ def archive_channels(channels: list) -> bool:
             logging.critical(channel_users)
             logging.critical(dashes)
 
-    return True
+    return None
 
 
-def send_admin_report(channel_name: str = DEFAULT_NOTIFICATION_CHANNEL) -> None:
+def send_admin_report(
+        channel_name: str = DEFAULT_NOTIFICATION_CHANNEL
+) -> None:
     """
     Sends an admin report to the specified channel.
     In a dry run, it sends a list of the channels that would be archived.
