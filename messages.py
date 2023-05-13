@@ -1,17 +1,11 @@
 # -*- coding: utf-8 -*-
 
-dry_run_message = 'DRY RUN ONLY'
-
-exempt_keyword = ''
-
-archive_message = '''This channel is scheduled to be archived on {date} due to inactivity.
-To exempt this channel from being, add {exempt_keyword} to the channel's description.
-An archived channel can be un-archived at any time.
+archived_message = '''This channel has been archived due to inactivity for {days} days.
+To un-archive, navigate to: {channel_link}
+See <https://slack.com/help/articles/213185307-Archive-or-delete-a-channel> for details.
 '''
 
-archived_message = '''This channel has been archived. To un-archive:'''
-
-api_error = 'Error making an API call. See error for details.'
+api_error = 'Error making an API call. See log for details.'
 
 stars = "*" * 80  # Used for logging and printing to separate sections
 dashes = "-" * 80  # Used for logging and printing to separate sections
@@ -22,17 +16,6 @@ Members of: {channel_name}:
 -----------------------------
 {users}
 -----------------------------
-'''
-
-results_template = '''
-*****************************
-Channel: {channel_name}:
-*****************************
-Archived?: {archived}
------------------------------
-{users}
------------------------------
-
 '''
 
 log_end = f'End of run.\n{stars}\n'
