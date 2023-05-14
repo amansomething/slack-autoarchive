@@ -19,10 +19,10 @@ The script has a dry run mode where it simply gathers a list of channels that wo
 A channel is considered inactive if it:
 - Is older than the amount of days specified in `config.py`.
 - Has a message that is not of a subtype defined in `config.py`.
+- Has a message that is older than the amount of days specified in `config.py`.
 - Is not marked exempt via `config.py`.
 - Does not contain the exemption string defined in `config.py` in the channel topic.
 - Does not contain more than the minimum members defined in `config.py`.
-- Has a message that is older than the amount of days specified in `config.py`.
 
 In both dry and true runs, a csv file is generated with the results and sent as an admin report to the specified channel.
 
