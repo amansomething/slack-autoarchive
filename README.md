@@ -9,7 +9,7 @@ I used this as a learning opportunity. Initially I used the Symantec script at m
 But the more I used it the more ideas for improvement I had. I chose to not let scope creep get the best of me for my work project, but thought it would be fun to go all out writing this from scratch on my own time, so here we are.
 
 This is the first script I'm making public and the first time I'm trying to use good documentation.
-As one of the main goals of this is learning, suggestions for improvement are welcome.
+As one of the main goals of this is learning, suggestions for improvement are welcome. This is also a chance for me to learn how to use git properly.
 
 Note that it currently doesn't use Docker, but I plan to integrate that as I learn more about it.
 
