@@ -38,7 +38,8 @@ In both dry and true runs, a csv file is generated with the results and sent as 
 ## Usage
 ### Prerequisites
 - python3
-- Install requirements.txt ( `pip install -r requirements.txt` )
+- Install requirements.txt 
+  - `pip install -r requirements.txt`
 - [Slack OAuth token](https://api.slack.com/docs/oauth) with these permissions:
   - `channels:history`
   - `channels:join`
@@ -54,3 +55,32 @@ In both dry and true runs, a csv file is generated with the results and sent as 
   - `users:read`
   - `chat:write:bot`
   - `chat:write:user`
+- The token needs to be set an environmental variable. On macOS and Linux:
+  - `export api_token={ACTUAL TOKEN HERE}`
+  - See <https://chlee.co/how-to-setup-environment-variables-for-windows-mac-and-linux/> for more details.
+
+### Adjust config.py as Needed
+| Variable                         | Notes                                                                                                               |
+|----------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| **DRY_RUN**                      | Does not archive channels if True.                                                                                  |
+| **MIN_MEMBERS**                  | If set to 0, does nothing. Otherwise, any channel with more number of people than this is exempt from being archived. |
+| **DAYS_INACTIVE**                | How old does the last message in a channel have to be to be considered inactive?                                    |
+| **TOO_OLD_DATE**                 | Automatically calculated based on TOO_OLD_DATE.                                                                     |
+| **DEFAULT_NOTIFICATION_CHANNEL** | Where to send the admin report. The '#' is optional.                                                                |
+| **JOIN_CHANNELS**                | If set to True, attempts to join all channels. This is not needed every time the script is run when testing/developing. |
+| **RESULTS_FILE**                 | Name of the csv file to write out the results to. This file is sent to DEFAULT_NOTIFICATION_CHANNEL.                |
+| **EXEMPT_SUBTYPES_RAW**          | Any channel message subtypes to ignore. See [Message API Reference](https://api.slack.com/events/message) for details. |
+| **ALLOWLIST_KEYWORDS_RAW**       | Any words on this list that show up in a channel's topic will allow the channel to be exempt from being archived.   |
+| **EXEMPT_CHANNELS_RAW**          | Any channel names that should be exempt from being archived.                                                        |
+
+### Run Script
+- Open a shell in the same directory as the script files and run:
+  - `python3 main.py`
+
+### Improvement Ideas
+- Dockerize it
+- Have more variables be set as env vars
+- Have a local cache of channel info.
+  - Not particularly useful when running in production, but nice to make fewer API calls when testing.
+- Not too experienced with making Object Oriented scripts, but seems like that's worth trying out.
+- Make a GUI?
