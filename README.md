@@ -1,6 +1,6 @@
 # Slack Autoarchive
 ## What?
-The idea was stolen from https://github.com/Symantec/slack-autoarchive.
+This was inspired by https://github.com/Symantec/slack-autoarchive.
 That script no longer works because some API calls it uses were deprecated.
 This version goes through a Slack instance and automatically archives all unused channels based on channel history.
 
