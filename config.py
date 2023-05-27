@@ -6,10 +6,6 @@ from os import environ
 from messages import *
 from datetime import datetime, timedelta
 
-# TODO: User env vars or other files for setting the variables
-
-DRY_RUN = environ.get('DRY_RUN', True)
-
 # Skip channels with more members than this.
 # 0 = do not skip any channels based on number of members
 MIN_MEMBERS = int(environ.get('MIN_MEMBERS', 0))
@@ -18,7 +14,7 @@ DAYS_INACTIVE = int(environ.get('DAYS_INACTIVE', 3))  # Not inclusive
 TOO_OLD_DATE = (datetime.now() - timedelta(days=DAYS_INACTIVE)).date()
 
 DEFAULT_NOTIFICATION_CHANNEL = '#apis'  # "#" is optional
-JOIN_CHANNELS = True  # Can set to False if script was recently run to save time.
+JOIN_CHANNELS = bool(environ.get('JOIN_CHANNELS', True))  # Can set to False if script was recently run to save time.
 RESULTS_FILE = 'results.csv'
 
 # https://api.slack.com/events/message
@@ -60,6 +56,7 @@ def get_env_var(var_str: str) -> str:
     """
     try:
         result = environ.get(var_str)
+
         if not result:
             logging.critical(f'"{var_str}" has not been set. Halting...')
             return ''
@@ -73,25 +70,45 @@ def get_env_var(var_str: str) -> str:
     return ''
 
 
-def get_vars() -> str:
+def get_vars() -> tuple[str, str]:
     """
     Checks the following:
         - Is API_TOKEN set?
+        - Is DRY_RUN set?
 
     :return: token
+
+    Future Iteration: Use this pattern for checking:
+    for k,v in os.environ.items():
+        ...
     """
+    errors = False
     token_str = 'API_TOKEN'
+    dry_run_str = 'DRY_RUN'
 
     token = get_env_var(token_str)
+    dry = get_env_var(dry_run_str)
 
     if not token:
+        errors = True
+
+    if dry == '':
+        errors = True
+
+    if errors:
         print('Sanity check did not pass. Check log for details.')
         logging.info(log_end)
         sys.exit(1)
 
     logging.info('All sanity checks passed! Continuing...\n')
-    return token
+    return token, dry
 
 
 logging.info(f'Starting new log\n{stars}')
-api_token = get_vars()
+api_token, dry = get_vars()
+
+# Had trouble getting a boolean to work correctly with Docker, so using this for now
+if dry.lower() == 'true':
+    DRY_RUN = True
+else:
+    DRY_RUN = False
