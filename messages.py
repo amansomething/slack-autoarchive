@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-archived_message = '''This channel has been archived due to inactivity for {days} days.
+archived_message = '''This channel has been archived due to inactivity for more than {days} days.
 To un-archive, navigate to: {channel_link}
 See <https://slack.com/help/articles/213185307-Archive-or-delete-a-channel> for details.
 '''
