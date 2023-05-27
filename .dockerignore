@@ -1,5 +1,4 @@
 .idea
-.env
 *.log
 results.csv
 venv
