@@ -6,11 +6,11 @@ from messages import *
 from datetime import datetime, timedelta
 
 optional_env_vars = {
-    'DRY_RUN': False,  # Only archives channels when set to True
-    'DAYS_INACTIVE': 90,  # Not inclusive
+    'DRY_RUN': True,  # Only archives channels when set to False
+    'MIN_MEMBERS': 0,  # Skip channels with more members than this. 0 = no skipping
+    'DAYS_INACTIVE': 90,  # Not inclusive. Ex older than 90 days, not 90 days or older.
     'DEFAULT_NOTIFICATION_CHANNEL': 'general',  # "#" is optional
     'JOIN_CHANNELS': True,  # Can set to False if script was recently run to save time.
-    'MIN_MEMBERS': 0,  # Skip channels with more members than this. 0 = no skipping
     'RESULTS_FILE': 'results.csv',
 }
 
