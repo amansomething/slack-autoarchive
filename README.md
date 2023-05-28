@@ -55,32 +55,53 @@ In both dry and true runs, a csv file is generated with the results and sent as 
   - `users:read`
   - `chat:write:bot`
   - `chat:write:user`
-- The token needs to be set an environmental variable. On macOS and Linux:
-  - `export api_token={ACTUAL TOKEN HERE}`
-  - See <https://chlee.co/how-to-setup-environment-variables-for-windows-mac-and-linux/> for more details.
+- Set the token as an environmental variable:
+  - macOS and Linux: `export api_token={ACTUAL TOKEN HERE}`
+  - Windows: <https://chlee.co/how-to-setup-environment-variables-for-windows-mac-and-linux/>
 
 ### Adjust config.py as Needed
-| Variable                         | Notes                                                                                                               |
-|----------------------------------|---------------------------------------------------------------------------------------------------------------------|
-| **DRY_RUN**                      | Does not archive channels if True.                                                                                  |
-| **MIN_MEMBERS**                  | If set to 0, does nothing. Otherwise, any channel with more number of people than this is exempt from being archived. |
-| **DAYS_INACTIVE**                | How old does the last message in a channel have to be to be considered inactive?                                    |
-| **TOO_OLD_DATE**                 | Automatically calculated based on TOO_OLD_DATE.                                                                     |
-| **DEFAULT_NOTIFICATION_CHANNEL** | Where to send the admin report. The '#' is optional.                                                                |
-| **JOIN_CHANNELS**                | If set to True, attempts to join all channels. This is not needed every time the script is run when testing/developing. |
-| **RESULTS_FILE**                 | Name of the csv file to write out the results to. This file is sent to DEFAULT_NOTIFICATION_CHANNEL.                |
-| **EXEMPT_SUBTYPES_RAW**          | Any channel message subtypes to ignore. See [Message API Reference](https://api.slack.com/events/message) for details. |
-| **ALLOWLIST_KEYWORDS_RAW**       | Any words on this list that show up in a channel's topic will allow the channel to be exempt from being archived.   |
-| **EXEMPT_CHANNELS_RAW**          | Any channel names that should be exempt from being archived.                                                        |
+The variables here can be adjusted before creating the docker image.
+Alternatively, send as env vars when running the container.
 
-### Run Script
+| Variable                         | Notes                                                                                                                   |
+|----------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| **DRY_RUN**                      | Does not archive channels if True.                                                                                      |
+| **MIN_MEMBERS**                  | If set to 0, does nothing. Otherwise, any channel with more  people than this is exempt from being archived.            |
+| **DAYS_INACTIVE**                | How many days old does the last message in a channel have to be to be considered inactive?                              |
+| **DEFAULT_NOTIFICATION_CHANNEL** | Where to send the admin report. Default=general. The '#' is optional.                                                   |
+| **JOIN_CHANNELS**                | If set to True, attempts to join all channels. This is not needed every time the script is run when testing/developing. |
+| **RESULTS_FILE**                 | Name of the csv file to write out the results to. This file is sent to DEFAULT_NOTIFICATION_CHANNEL.                    |
+| **EXEMPT_SUBTYPES_RAW**          | Any channel message subtypes to ignore. See [Message API Reference](https://api.slack.com/events/message) for details.  |
+| **ALLOWLIST_KEYWORDS_RAW**       | Any words in this list that show up in a channel's topic will allow the channel to be exempt from being archived.       |
+| **EXEMPT_CHANNELS_RAW**          | Any channel names that should be exempt from being archived.                                                            |
+
+### Run Script - Without Docker
 - Open a shell in the same directory as the script files and run:
   - `python3 main.py`
 
+### Run Script - With Docker
+- Build the image:
+  - `docker image build . -t autoarchive`
+- Run container as a dry run:
+```
+docker container run -it \
+-e API_TOKEN=$API_TOKEN \
+-t autoarchive
+```
+- Run container in production mode:
+```
+docker container run -it \
+-e API_TOKEN=$API_TOKEN \
+-e DRY_RUN=False \
+-t autoarchive
+```
+
 ### Improvement Ideas
-- Dockerize it
-- Have more variables be set as env vars
+- ~~Dockerize it~~ Done!
+  - Use .env file for vars
+  - Use docker-compose
+- ~~Have more variables be set as env vars~~ Done!
 - Have a local cache of channel info.
   - Not particularly useful when running in production, but nice to make fewer API calls when testing.
-- Not too experienced with making Object Oriented scripts, but seems like that's worth trying out.
+- Not too experienced with making Object-Oriented scripts, but seems like that's worth trying out.
 - Make a GUI?
