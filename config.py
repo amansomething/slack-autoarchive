@@ -15,7 +15,7 @@ optional_env_vars = {
 }
 
 # https://api.slack.com/events/message
-# Channel messages with these subtypes do not count when checking if there is a recent message in the channel.
+# Channel messages with these subtypes are ignored when checking if there is a recent message in the channel.
 # A list item is generated from this automatically
 EXEMPT_SUBTYPES_RAW = '''  
 channel_join
