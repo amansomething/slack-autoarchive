@@ -1,4 +1,18 @@
 # Slack Autoarchive
+<!-- TOC -->
+* [Slack Autoarchive](#slack-autoarchive)
+  * [What?](#what)
+  * [Why?](#why)
+  * [How?](#how)
+  * [Differences From Symantec Script](#differences-from-symantec-script)
+  * [Usage](#usage)
+    * [Prerequisites](#prerequisites)
+    * [Adjust config.py as Needed](#adjust-configpy-as-needed)
+    * [Run Script - Without Docker](#run-script---without-docker)
+    * [Run Script - With Docker](#run-script---with-docker)
+    * [Improvement Ideas](#improvement-ideas)
+<!-- TOC -->
+
 ## What?
 This was inspired by https://github.com/Symantec/slack-autoarchive.
 That script no longer works because some API calls it uses were deprecated.
@@ -97,10 +111,10 @@ docker container run -it \
 ```
 Additional variables can be passed along using the format `-e VAR=VAL`.
 
-### Improvement Ideas
+## Improvement Ideas
 - ~~Dockerize it~~ Done!
-  - Use .env file for vars
-  - Use docker-compose
+- Use .env file for vars
+- Use docker-compose
 - ~~Have more variables be set as env vars~~ Done!
 - Have a local cache of channel info.
   - Not particularly useful when running in production, but nice to make fewer API calls when testing.
