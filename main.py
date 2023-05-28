@@ -3,6 +3,7 @@
 from config import *
 from messages import *
 import csv
+import sys
 import time
 import requests
 from typing import Dict
