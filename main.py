@@ -53,7 +53,7 @@ def api_call(
             'Content-type': f'{content_type}',
         }
 
-    headers['Authorization'] = 'Bearer ' + api_token
+    headers['Authorization'] = 'Bearer ' + API_TOKEN
 
     if json_data:
         response = requests.request(method, url, headers=headers, json=json_data)
@@ -526,7 +526,7 @@ def send_admin_report(
     try:
         endpoint = '/files.upload'
         payload = {
-            'token': api_token,
+            'token': API_TOKEN,
             'channels': channel_id,
             'title': 'Autoarchive Results',
             'filename': RESULTS_FILE,
