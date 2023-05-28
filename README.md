@@ -9,9 +9,8 @@ I used this as a learning opportunity. Initially I used the Symantec script at m
 But the more I used it the more ideas for improvement I had. I chose to not let scope creep get the best of me for my work project, but thought it would be fun to go all out writing this from scratch on my own time, so here we are.
 
 This is the first script I'm making public and the first time I'm trying to use good documentation.
-As one of the main goals of this is learning, suggestions for improvement are welcome. This is also a chance for me to learn how to use git properly.
-
-Note that it currently doesn't use Docker, but I plan to integrate that as I learn more about it.
+One of my main goals of this project is to learn. Suggestions for improvement are welcome.
+This is also a chance for me to learn how to use git better.
 
 ## How?
 The script has a dry run mode where it simply gathers a list of channels that would be archived. In a true run, the channels are actually archived.
@@ -26,20 +25,19 @@ A channel is considered inactive if it:
 
 In both dry and true runs, a csv file is generated with the results and sent as an admin report to the specified channel.
 
-## Differences
+## Differences From Symantec Script
 - This script is able to automatically join channels.
   - This is a prerequisite before the bot can really do anything.
 - A list of channel users is gathered and noted before archiving.
   - If a channel ever needs to be unarchived, users may need to be added back manually.
 - Function type hints are used.
 - The original script looked at non-bot messages, but this scripts treats bot messages as regular messages.
-  - It instead skips certain messages based on certain message subtype.
+  - It instead skips certain messages based on message subtypes.
 
 ## Usage
 ### Prerequisites
-- python3
-- Install requirements.txt 
-  - `pip install -r requirements.txt`
+- `python3` must be installed if running without Docker.
+- Docker must be installed if running with Docker.
 - [Slack OAuth token](https://api.slack.com/docs/oauth) with these permissions:
   - `channels:history`
   - `channels:join`
@@ -56,7 +54,7 @@ In both dry and true runs, a csv file is generated with the results and sent as 
   - `chat:write:bot`
   - `chat:write:user`
 - Set the token as an environmental variable:
-  - macOS and Linux: `export api_token={ACTUAL TOKEN HERE}`
+  - macOS and Linux: `export API_TOKEN={ACTUAL TOKEN HERE}`
   - Windows: <https://chlee.co/how-to-setup-environment-variables-for-windows-mac-and-linux/>
 
 ### Adjust config.py as Needed
@@ -76,6 +74,8 @@ Alternatively, send as env vars when running the container.
 | **EXEMPT_CHANNELS_RAW**          | Any channel names that should be exempt from being archived.                                                            |
 
 ### Run Script - Without Docker
+- Install requirements.txt
+  - `pip install -r requirements.txt`
 - Open a shell in the same directory as the script files and run:
   - `python3 main.py`
 
@@ -95,6 +95,7 @@ docker container run -it \
 -e DRY_RUN=False \
 -t autoarchive
 ```
+Additional variables can be passed along using the format `-e VAR=VAL`.
 
 ### Improvement Ideas
 - ~~Dockerize it~~ Done!
