@@ -1,23 +1,18 @@
 # -*- coding: utf-8 -*-
 
-import sys
 import logging
 from os import environ
 from messages import *
 from datetime import datetime, timedelta
 
-needed_env_vars = [
-    'API_TOKEN',
-    'DRY_RUN',
-]
 optional_env_vars = {
+    'DRY_RUN': False,  # Only archives channels when set to True
     'DAYS_INACTIVE': 90,  # Not inclusive
     'DEFAULT_NOTIFICATION_CHANNEL': 'general',  # "#" is optional
     'JOIN_CHANNELS': True,  # Can set to False if script was recently run to save time.
     'MIN_MEMBERS': 0,  # Skip channels with more members than this. 0 = no skipping
     'RESULTS_FILE': 'results.csv',
 }
-
 
 # https://api.slack.com/events/message
 # Channel messages with these subtypes do not count when checking if there is a recent message in the channel.
@@ -47,77 +42,93 @@ logging.basicConfig(
 )
 
 
+def check_if_int(var: str) -> bool:
+    """
+    Checks to see if the given string exists as an environmental variable.
+    If so, checks if the value of that variable is an int.
+    If not, tries to convert to an int and update optional_env_vars.
+
+    :param var: Name of the env var to check.
+    :return: bool
+        True if var value is an int or can be converted to int.
+        False otherwise.
+    """
+    if type(optional_env_vars[var]) == int:
+        return True
+
+    val = optional_env_vars[var]
+    try:
+        optional_env_vars[var] = int(val)
+        return True
+    except ValueError:
+        print(f'Issue converting {var} to an int. Current value: {val}')
+        return False
+
+
+def check_if_bool(var: str) -> bool:
+    """
+    Checks to see if the given string exists as an environmental variable.
+    If so, checks if the value of that variable is true or false.
+    If not, tries to convert to a bool and update optional_env_vars.
+
+    :param var: Name of the env var to check.
+    :return: bool
+        True if var value is a bool or can be converted to a bool.
+        False otherwise.
+    """
+    if type(optional_env_vars[var]) == bool:
+        return True
+
+    val = optional_env_vars[var].lower()
+    try:
+        if val == 'true':
+            optional_env_vars[var] = True
+            return True
+        elif val == 'false':
+            optional_env_vars[var] = False
+            return True
+        else:
+            print(f'{var} must be True or False. Current value: {val}')
+            return False
+    except ValueError:
+        print(f'Issue converting {var} to a bool.')
+        print(f'Current value: {val}')
+        return False
+
+
 def check_vars() -> None:
     """
     Checks the following:
         - Is API_TOKEN set?
-        - Is DRY_RUN set?
-        If both are not set, raises an exception.
+        If not, raises an exception.
 
-        If both are set, checks to see if any options vars are set.
+        If set, checks to see if any optional vars are set.
         If they are, overrides the defaults.
 
         Checks to see if optional variables are of the correct type.
-        It not, raises and exception. This part can likely be improved a lot.
+        It not, raises an exception. (This part can likely be coded better.)
 
     :return: None
     """
-    errors = False
-
-    env_vars = environ.keys()
+    env_vars = [x for x in sorted(list(environ.keys())) if x in optional_env_vars.keys()]
     sorted_env_vars = sorted(list(env_vars))
 
-    if all(var in env_vars for var in needed_env_vars):
-        print('API_TOKEN and DRY_RUN env vars are set. Continuing...\n')
-
-        dry = environ.get('DRY_RUN').strip().lower()
-        dry_test = ['true', 'false']
-        if dry not in dry_test:
-            print(f'DRY_RUN must be True or False. Current value: {dry}')
-            errors = True
+    if environ.get('API_TOKEN'):
+        print('API_TOKEN is set. Continuing...\n')
     else:
-        print('Missing a required environmental variable. Currently set vars:')
+        raise ValueError('API_TOKEN must be set.')
+
+    if env_vars:
         for var in sorted_env_vars:
-            print(var)
-        raise ValueError('API_TOKEN and DRY_RUN must be set.')
+            if var in optional_env_vars.keys():
+                optional_env_vars[var] = environ[var]
 
-    for var in sorted_env_vars:
-        if var in optional_env_vars.keys():
-            optional_env_vars[var] = environ[var]
-
-    if type(optional_env_vars['DAYS_INACTIVE']) != int:
-        days = optional_env_vars['DAYS_INACTIVE']
-        try:
-            optional_env_vars['DAYS_INACTIVE'] = int(days)
-        except ValueError:
-            print(f'Issue converting DAYS_INACTIVE to an int. Current value: {days}')
-            errors = True
-
-    if type(optional_env_vars['MIN_MEMBERS']) != int:
-        min_members = optional_env_vars['MIN_MEMBERS']
-        try:
-            optional_env_vars['MIN_MEMBERS'] = int(min_members)
-        except ValueError:
-            print(f'Issue converting MIN_MEMBERS to an int. Current value: {min_members}')
-            errors = True
-
-    if type(optional_env_vars['JOIN_CHANNELS']) != bool:
-        try:
-            join_channels = str(optional_env_vars['JOIN_CHANNELS']).lower()
-
-            if join_channels == 'true':
-                optional_env_vars['JOIN_CHANNELS'] = True
-            elif join_channels == 'false':
-                optional_env_vars['JOIN_CHANNELS'] = False
-            else:
-                print(f'JOIN_CHANNELS must be True or False. Current value: {join_channels}')
-                errors = True
-        except ValueError:
-            print(f'Issue converting JOIN_CHANNELS to a bool.')
-            print('Current value: {optional_env_vars["JOIN_CHANNELS"]}')
-            errors = True
-
-    if errors:
+    if not all([
+        check_if_int('DAYS_INACTIVE'),
+        check_if_int('MIN_MEMBERS'),
+        check_if_bool('JOIN_CHANNELS'),
+        check_if_bool('DRY_RUN'),
+    ]):
         raise ValueError('Issue(s) with optional variables.')
 
     return None
@@ -127,11 +138,7 @@ logging.info(f'Starting new log\n{stars}')
 check_vars()
 
 API_TOKEN = environ.get('API_TOKEN')
-if environ.get('DRY_RUN').strip().lower() == 'true':  # Env vars can only be str
-    DRY_RUN = True
-else:
-    DRY_RUN = False
-
+DRY_RUN = optional_env_vars['DRY_RUN']
 RESULTS_FILE = optional_env_vars['RESULTS_FILE']
 DAYS_INACTIVE = optional_env_vars['DAYS_INACTIVE']
 DEFAULT_NOTIFICATION_CHANNEL = optional_env_vars['DEFAULT_NOTIFICATION_CHANNEL']
