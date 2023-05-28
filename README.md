@@ -10,7 +10,7 @@
     * [Adjust config.py as Needed](#adjust-configpy-as-needed)
     * [Run Script - Without Docker](#run-script---without-docker)
     * [Run Script - With Docker](#run-script---with-docker)
-    * [Improvement Ideas](#improvement-ideas)
+  * [Improvement Ideas](#improvement-ideas)
 <!-- TOC -->
 
 ## What?
